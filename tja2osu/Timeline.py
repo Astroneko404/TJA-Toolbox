@@ -1,11 +1,14 @@
 import keyboard
 from pynput.keyboard import Key, Controller
+import os
 import re
 import sys
 import time
 
 class TJA:
     def __init__(self, filePath, difficulty="Oni"):
+        self.name = ""
+
         self.bpm = 0.0  # Song BPM
         self.oneBeatTime = 0.0  # How many time does one beat take
         self.measure = 4  # Measure, default 4/4
@@ -16,7 +19,7 @@ class TJA:
         self.fumen = None
         self.timeline = []
 
-        self.kb = Controller()
+        # self.kb = Controller()
 
     def calcTimeline(self):
         """
@@ -51,14 +54,14 @@ class TJA:
 
             # First note
             if idx == 0:
-                self.timeline.append((bar[0], overallTime))
-                bar = bar[1:]
+                self.timeline.append((keys[0], overallTime))
+                keys = keys[1:]
 
             # Process bar
-            if not bar:
+            if not keys:
                 overallTime += currBarLength
             else:
-                for note in bar:
+                for note in keys:
                     overallTime += keyDelay
                     if note == "1" or note == "3":  # Don
                         self.timeline.append((note, overallTime))
@@ -76,8 +79,25 @@ class TJA:
                     elif note == "8":  # End of yellow slider/balloon
                         # TODO
                         continue
-                    else:  # Hmmmmmmm
+                    else:  # Hmmmmmmm, comma or 0?
                         continue
+        return
+
+    def exportTimeline(self, outPath):
+        """
+        For testing purpose
+        :param outPath:
+        :return:
+        """
+        try:
+            outFile = open(outPath + self.name + ".txt", "w+")
+            for item in self.timeline:
+                outFile.write(item[0] + " " + str(item[1]) + "\n")
+            outFile.close()
+        except OSError:
+            print("Directory error")
+            sys.exit()
+
         return
 
     def iterTimeline(self):
@@ -91,17 +111,19 @@ class TJA:
                 deltaTime = currTime - lastTime
 
                 time.sleep(deltaTime)
+
                 if currNote == "1" or currNote == "3":
                     if flag:
-                        self.kb.type("j")
+                        # self.kb.type("j")
+                        keyboard.press_and_release("j")
                     else:
-                        self.kb.type("f")
+                        keyboard.press_and_release("j")
                     flag = 1 - flag
                 elif currNote == "2" or currNote == "4":
                     if flag:
-                        self.kb.type("k")
+                        keyboard.press_and_release("l")
                     else:
-                        self.kb.type("d")
+                        keyboard.press_and_release("l")
                     flag = 1 - flag
         return
 
@@ -127,6 +149,7 @@ class TJA:
         """
         try:
             TJAFile = open(self.filePath, "r")
+            self.name = os.path.basename(self.filePath)
 
             # Read Meta
             textList = TJAFile.readlines()
@@ -156,7 +179,6 @@ if __name__ == "__main__":
     newTJA = TJA(fileName, course)
     newTJA.readFumen()
     newTJA.calcTimeline()
-    # print(newTJA.bpm, newTJA.measure)
-    # print(newTJA.timeline)
+    # newTJA.exportTimeline("E:/")
 
     newTJA.keyPressedKeyboard()
