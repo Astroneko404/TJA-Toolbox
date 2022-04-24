@@ -171,28 +171,3 @@ class TJA:
         except OSError:
             print("Cannot open the TJA file")
             sys.exit()
-
-
-def high_precision_delay(delayTime):
-    """
-    :param delayTime: 
-    :return: 
-    """
-    _ = time.perf_counter() + delayTime
-    while time.perf_counter() < _:
-        pass
-
-
-if __name__ == "__main__":
-    assert (len(sys.argv) == 3), "Two args needed: FileName & Difficulty"
-    fileName, course = sys.argv[1], sys.argv[2]
-    # print("File: " + fileName + "\nDifficulty: " + difficulty)
-
-    newTJA = TJA(fileName, course)
-    newTJA.readFumen()
-    # print(newTJA.fumen)
-    newTJA.calcTimeline()
-    # print(newTJA.timeline)
-    # newTJA.exportTimeline("E:/")
-
-    newTJA.keyPressedKeyboard()
