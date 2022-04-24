@@ -68,15 +68,19 @@ class TJA:
                         overallTime += keyDelay
                     elif note == "5":  # Start of yellow slider
                         # TODO
+                        overallTime += keyDelay
                         continue
                     elif note == "6":  # Start of large yellow slider
                         # TODO
+                        overallTime += keyDelay
                         continue
                     elif note == "7":  # Start of balloon
                         # TODO
+                        overallTime += keyDelay
                         continue
                     elif note == "8":  # End of yellow slider/balloon
                         # TODO
+                        overallTime += keyDelay
                         continue
                     else:  # Hmmmmmmm, comma or 0?
                         overallTime += keyDelay
