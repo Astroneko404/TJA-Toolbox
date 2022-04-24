@@ -1,9 +1,9 @@
 import keyboard
-from pynput.keyboard import Key, Controller
 import os
 import re
 import sys
 import time
+
 
 class TJA:
     def __init__(self, filePath, difficulty="Oni"):
@@ -19,26 +19,22 @@ class TJA:
         self.fumen = None
         self.timeline = []
 
-        # self.kb = Controller()
-
     def calcTimeline(self):
         """
         Read the Fumen and calculate time for each notes
         The data will be saved in self.timeline
         :return: None
         """
-        overallTime = self.offset
+        overallTime = 0.0
 
         for idx, bar in enumerate(self.fumen):
             # Preprocess each line
+            if not bar or "#GOGOSTART" in bar or "#GOGOEND" in bar or\
+                    "#SCROLL" in bar or "#BARLINEON" in bar or "#BARLINEOFF" in bar:
+                continue
             if "#MEASURE" in bar:
                 self.measure = int(re.search(r"#MEASURE ([0-9]+)\/[0-9]+", bar).group(1))
-                continue
-            elif "#GOGOSTART" in bar or "#GOGOEND" in bar:
-                continue
-            elif "#BARLINEON" in bar or "#BARLINEOFF" in bar:  # Need Verification
-                continue
-            elif "#SCROLL" in bar:
+                # print("Measure: " + str(self.measure))
                 continue
             elif "#BPMCHANGE" in bar:
                 self.bpm = int(re.search(r"#BPMCHANGE ([0-9]+)", bar).group(1))
@@ -46,7 +42,8 @@ class TJA:
                 continue
 
             # Get bar length
-            currBarLength = self.oneBeatTime * float(self.measure)
+            currBarLength = self.oneBeatTime * self.measure
+            # print(currBarLength)
             keys = re.sub(r"(\/\/[0-9]+)", "", bar.strip().replace(",", ""))
             count = len(keys)
             keyDelay = currBarLength / count if count else currBarLength
@@ -54,7 +51,8 @@ class TJA:
 
             # First note
             if idx == 0:
-                self.timeline.append((keys[0], overallTime))
+                self.timeline.append((keys[0], overallTime, overallTime + self.offset))
+                overallTime += keyDelay
                 keys = keys[1:]
 
             # Process bar
@@ -62,11 +60,12 @@ class TJA:
                 overallTime += currBarLength
             else:
                 for note in keys:
-                    overallTime += keyDelay
                     if note == "1" or note == "3":  # Don
-                        self.timeline.append((note, overallTime))
+                        self.timeline.append((note, overallTime, overallTime + self.offset))
+                        overallTime += keyDelay
                     elif note == "2" or note == "4":  # Ka
-                        self.timeline.append((note, overallTime))
+                        self.timeline.append((note, overallTime, overallTime + self.offset))
+                        overallTime += keyDelay
                     elif note == "5":  # Start of yellow slider
                         # TODO
                         continue
@@ -80,6 +79,7 @@ class TJA:
                         # TODO
                         continue
                     else:  # Hmmmmmmm, comma or 0?
+                        overallTime += keyDelay
                         continue
         return
 
@@ -92,7 +92,7 @@ class TJA:
         try:
             outFile = open(outPath + self.name + ".txt", "w+")
             for item in self.timeline:
-                outFile.write(item[0] + " " + str(item[1]) + "\n")
+                outFile.write(item[0] + " " + str(item[1]) + " " + str(item[2]) + "\n")
             outFile.close()
         except OSError:
             print("Directory error")
@@ -100,31 +100,29 @@ class TJA:
 
         return
 
-    def iterTimeline(self):
+    def iterTimeline(self, startTime):
         flag = 1  # Left or right
+        timestamps = []
 
         for idx, item in enumerate(self.timeline):
             if idx != 0:
-                lastItem = self.timeline[idx-1]
-                currNote, currTime = item[0], item[1]
-                lastNote, lastTime = lastItem[0], lastItem[1]
-                deltaTime = currTime - lastTime
+                timestamps.append((item[0], startTime + item[1]))
 
-                time.sleep(deltaTime)
-
-                if currNote == "1" or currNote == "3":
-                    if flag:
-                        # self.kb.type("j")
-                        keyboard.press_and_release("j")
-                    else:
-                        keyboard.press_and_release("j")
-                    flag = 1 - flag
-                elif currNote == "2" or currNote == "4":
-                    if flag:
-                        keyboard.press_and_release("l")
-                    else:
-                        keyboard.press_and_release("l")
-                    flag = 1 - flag
+        for note, absTime in timestamps:
+            while time.perf_counter() < absTime:
+                pass
+            if note == "1" or note == "3":
+                if flag:
+                    keyboard.press_and_release("j")
+                else:
+                    keyboard.press_and_release("j")
+                flag = 1 - flag
+            elif note == "2" or note == "4":
+                if flag:
+                    keyboard.press_and_release("l")
+                else:
+                    keyboard.press_and_release("l")
+                flag = 1 - flag
         return
 
     def keyPressedKeyboard(self):
@@ -136,10 +134,10 @@ class TJA:
         while True:
             if keyboard.read_key() == "j":
                 print("D", end="")
-                self.iterTimeline()
+                self.iterTimeline(time.perf_counter())
             elif keyboard.read_key() == "k":
                 print("K", end="")
-                self.iterTimeline()
+                self.iterTimeline(time.perf_counter())
             break
 
     def readFumen(self):
@@ -159,7 +157,7 @@ class TJA:
                     self.bpm = int(line.split(":")[1])
                     self.oneBeatTime = 60.0 / float(self.bpm)
                 elif "OFFSET" in line:
-                    self.offset = 0 - int(line.split(":")[1])
+                    self.offset = 0 - float(line.split(":")[1])
 
             # Extract Fumen
             for splitResult in text.split("COURSE:"):
@@ -171,6 +169,16 @@ class TJA:
             sys.exit()
 
 
+def high_precision_delay(delayTime):
+    """
+    :param delayTime: 
+    :return: 
+    """
+    _ = time.perf_counter() + delayTime
+    while time.perf_counter() < _:
+        pass
+
+
 if __name__ == "__main__":
     assert (len(sys.argv) == 3), "Two args needed: FileName & Difficulty"
     fileName, course = sys.argv[1], sys.argv[2]
@@ -178,7 +186,9 @@ if __name__ == "__main__":
 
     newTJA = TJA(fileName, course)
     newTJA.readFumen()
+    # print(newTJA.fumen)
     newTJA.calcTimeline()
+    # print(newTJA.timeline)
     # newTJA.exportTimeline("E:/")
 
     newTJA.keyPressedKeyboard()
