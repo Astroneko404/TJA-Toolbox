@@ -9,11 +9,17 @@ class TJA:
     def __init__(self, filePath, difficulty="Oni"):
         self.name = ""
 
+        # Jiro basic info
+        self.title = ""
+        self.subtitle = ""
         self.bpm = 0.0  # Song BPM
+        self.wavfile = ""  # Wav file name
         self.oneBeatTime = 0.0  # How many time does one beat take
-        self.measure = 4  # Measure, default 4/4
         self.offset = 0.0  # The time between song start and first note
+        self.demostart = 0.0
+        self.measure = 4  # Measure, default 4/4
 
+        # Fumen info
         self.filePath = filePath
         self.difficulty = difficulty
         self.fumen = None
@@ -60,29 +66,30 @@ class TJA:
                 overallTime += currBarLength
             else:
                 for note in keys:
-                    if note == "1" or note == "3":  # Don
+                    if note != "0":
                         self.timeline.append((note, overallTime, overallTime + self.offset))
                         overallTime += keyDelay
-                    elif note == "2" or note == "4":  # Ka
-                        self.timeline.append((note, overallTime, overallTime + self.offset))
-                        overallTime += keyDelay
-                    elif note == "5":  # Start of yellow slider
-                        # TODO
-                        overallTime += keyDelay
-                        continue
-                    elif note == "6":  # Start of large yellow slider
-                        # TODO
-                        overallTime += keyDelay
-                        continue
-                    elif note == "7":  # Start of balloon
-                        # TODO
-                        overallTime += keyDelay
-                        continue
-                    elif note == "8":  # End of yellow slider/balloon
-                        # TODO
-                        overallTime += keyDelay
-                        continue
-                    else:  # Hmmmmmmm, comma or 0?
+                    # if note == "1" or note == "3":  # Don
+                    #     self.timeline.append((note, overallTime, overallTime + self.offset))
+                    #     overallTime += keyDelay
+                    # elif note == "2" or note == "4":  # Ka
+                    #     self.timeline.append((note, overallTime, overallTime + self.offset))
+                    #     overallTime += keyDelay
+                    # elif note == "5":  # Start of yellow slider
+                    #     self.timeline.append((note, overallTime, overallTime + self.offset))
+                    #     overallTime += keyDelay
+                    # elif note == "6":  # Start of large yellow slider
+                    #     self.timeline.append((note, overallTime, overallTime + self.offset))
+                    #     overallTime += keyDelay
+                    # elif note == "7":  # Start of balloon
+                    #     self.timeline.append((note, overallTime, overallTime + self.offset))
+                    #     overallTime += keyDelay
+                    #     continue
+                    # elif note == "8":  # End of yellow slider/balloon
+                    #     # TODO
+                    #     overallTime += keyDelay
+                    #     continue
+                    else:  # 0?
                         overallTime += keyDelay
                         continue
         return
@@ -157,11 +164,23 @@ class TJA:
             textList = TJAFile.readlines()
             text = "".join(textList)
             for line in textList:
-                if "BPM" in line:
+                if "#BRANCH" in line:
+                    print("Branch is not supported")
+                    sys.exit()
+
+                if "TITLE" in line and "SUBTITLE" not in line:
+                    self.title = line.split(":")[1].strip()
+                elif "SUBTITLE" in line:
+                    self.subtitle = line.split(":")[1]
+                elif "BPM" in line:
                     self.bpm = int(line.split(":")[1])
                     self.oneBeatTime = 60.0 / float(self.bpm)
+                elif "WAVE" in line:
+                    self.wavfile = line.split(":")[1]
                 elif "OFFSET" in line:
                     self.offset = 0 - float(line.split(":")[1])
+                elif "DEMOSTART" in line:
+                    self.demostart = float(line.split(":")[1])
 
             # Extract Fumen
             for splitResult in text.split("COURSE:"):
