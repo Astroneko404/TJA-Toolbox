@@ -1,3 +1,4 @@
+import os
 import sys
 from six import string_types
 from TJA import TJA
@@ -32,7 +33,7 @@ def get_help_str():
     return "HELP STRING"
 
 
-def tja2osu(filename):
+def tja2osu(filename, difficulty):
     """
     Full explanation of osu file format:
     https://osu.ppy.sh/wiki/en/Client/File_formats/Osu_(file_format)
@@ -41,12 +42,12 @@ def tja2osu(filename):
     """
     assert isinstance(filename, string_types)
 
-    tja = TJA(filename, "Oni")
+    tja = TJA(filename, difficulty)
     tja.readFumen()
     tja.calcTimeline()
 
     result = ""
-    result += "osu file format v14" + "\n"
+    result += "osu file format v14" + "\n\n"
     result += "[General]" + \
               "\nAudioFilename: " + tja.wavfile + \
               "\nAudioLeadIn: 0" + \
@@ -57,13 +58,13 @@ def tja2osu(filename):
               "\nMode: 1" + \
               "\nLetterboxInBreaks: 0" + \
               "\nWidescreenStoryboard: 0" + \
-              "\n"
+              "\n\n"
     result += "[Editor]" + \
               "\nDistanceSpacing: 0.8" + \
               "\nBeatDivisor: 4" + \
               "\nGridSize: 8" + \
               "\nTimelineZoom: 2.2" + \
-              "\n"
+              "\n\n"
     result += "[Metadata]" + \
               "\nTitle:" + tja.title + \
               "\nArtist:" + \
@@ -73,7 +74,7 @@ def tja2osu(filename):
               "\nTags:" + \
               "\nBeatmapID:" + \
               "\nBeatmapSetID:" + \
-              "\n"
+              "\n\n"
     result += "[Difficulty]" + \
               "\nHPDrainRate:5" + \
               "\nCircleSize:5" + \
@@ -81,33 +82,34 @@ def tja2osu(filename):
               "\nApproachRate:5" + \
               "\nSliderMultiplier:" + str(sliderMultiplier) + \
               "\nSliderTickRate:1" + \
-              "\n"
+              "\n\n"
 
-    print("[TimingPoints]")
+    result += "[TimingPoints]\n"
     for timestamp, bpm, measure in tja.timingPoints:
-        print(str(timestamp * 1000) + "," + str(60/bpm*1000) + "," + str(measure) + ",1,0,100,1,0")
+        result += str(timestamp * 1000) + "," + str(60/bpm*1000) + "," + str(measure) + ",1,0,100,1,0\n"
 
-    print("\n[HitObjects]")
+    result += "\n[HitObjects]\n"
     currBeatLen = tja.oneBeatTime
     for idx, item in enumerate(tja.timeline):
         note, time = item[0], item[2]
         if note != "8":
-            print(str(X) + "," + str(Y) + "," + str(time * 1000) + ",", end="")
+            result += str(X) + "," + str(Y) + "," + str(time * 1000) + ","
         if note == "1":  # Don
-            print("5,0,0:0:0:0:")
+            result += "5,0,0:0:0:0:"
         elif note == "2":  # Ka
-            print("5,8,0:0:0:0:")
+            result += "5,8,0:0:0:0:"
         elif note == "3":  # Don(L)
-            print("5,4,0:0:0:65:")
+            result += "5,4,0:0:0:65:"
         elif note == "4":  # Ka(L)
-            print("5,12,0:0:0:65:")
+            result += "5,12,0:0:0:65:"
         elif note == "5" or note == "6":  # Slider or Large Slider
             endtime = tja.timeline[idx + 1][2]
             lenPixel = (endtime - time) * 1000 / (currBeatLen * 1000) * (sliderMultiplier * 100)
-            print("2,0,L|" + str(X + lenPixel) + ":" + str(Y) + ",1," + str(lenPixel))
+            result += "2,0,L|" + str(X + lenPixel) + ":" + str(Y) + ",1," + str(lenPixel)
         elif note == "7":  # Fusen
             endtime = tja.timeline[idx + 1][2] * 1000
-            print("12,0," + str(endtime) + ",0:0:0:0:")
+            result += "12,0," + str(endtime) + ",0:0:0:0:"
+        result += "\n"
 
     return result
 
@@ -119,4 +121,8 @@ if __name__ == "__main__":
     if not sys.argv[1].lower().endswith(".tja"):
         print("Please use a TJA file")
         sys.exit()
-    res = tja2osu(sys.argv[1])
+    dif = input("Please enter the difficulty:")
+    res = tja2osu(sys.argv[1], dif)
+
+    outFile = open(sys.argv[1] + ".osu.txt", "w+")
+    outFile.write(res)

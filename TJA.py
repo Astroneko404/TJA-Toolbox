@@ -177,7 +177,7 @@ class TJA:
                     self.bpm = int(line.split(":")[1])
                     self.oneBeatTime = 60.0 / float(self.bpm)
                 elif "WAVE" in line:
-                    self.wavfile = line.split(":")[1]
+                    self.wavfile = line.split(":")[1].strip()
                 elif "OFFSET" in line:
                     self.offset = 0 - float(line.split(":")[1])
                 elif "DEMOSTART" in line:
