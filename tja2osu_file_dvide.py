@@ -1,5 +1,4 @@
-import sys
-import tja2osu
+from tja2osu import *
 
 # song data
 TITLE = "NO TITLE"

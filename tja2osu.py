@@ -3,8 +3,9 @@ from six import string_types
 from TJA import TJA
 
 # Const Data
-X = 256
-Y = 192
+X = 100
+Y = 100
+sliderMultiplier = 1.4
 
 CIRCLE = 1
 SLIDER = 2
@@ -16,17 +17,6 @@ EMPTY = 0
 CLAP = 8
 FINISH = 4
 WHISTLE = 2
-
-has_started = False
-curr_time = 0.0
-bar_data = []
-lasting_note = None
-
-
-def get_t_unit(tm, tot_note):
-    # print tm["bpm"], tot_note
-    return tm["measure"] * 60000.0 / (tm["bpm"] * tot_note)
-
 
 debug_mode = False
 last_debug = None
@@ -50,90 +40,76 @@ def tja2osu(filename):
     :return:
     """
     assert isinstance(filename, string_types)
-    # rtassert(filename.endswith(".tja"), "filename should ends with .tja")
-    # check_unsupported(filename)
+
     tja = TJA(filename, "Oni")
     tja.readFumen()
     tja.calcTimeline()
-    # print(tja.fumen)
-    # tja.exportTimeline("E:/")
-    # print(tja.title, tja.wavfile)
 
-    # # real work
-    # get_meta_data(filename)
-    print("osu file format v14" + "\n")
-    print("[General]" +
-          "\nAudioFilename: " + tja.wavfile +
-          "\nAudioLeadIn: 0" +
-          "\nPreviewTime: " + str(int(tja.demostart) * 1000) +
-          "\nCountdown: 0" +
-          "\nSampleSet: None" +
-          "\nStackLeniency: 0.7" +
-          "\nMode: 1" +
-          "\nLetterboxInBreaks: 0" +
-          "\nWidescreenStoryboard: 0" +
-          "\n"
-          )
-    print("[Editor]" +
-          "\nDistanceSpacing: 0.8" +
-          "\nBeatDivisor: 4" +
-          "\nGridSize: 8" +
-          "\nTimelineZoom: 2.2" +
-          "\n"
-          )
-    print("[Metadata]" +
-          "\nTitle:" + tja.title +
-          "\nArtist:" +
-          "\nCreator:" +
-          "\nVersion:Insane" +
-          "\nSource:" +
-          "\nTags:" +
-          "\nBeatmapID:" +
-          "\nBeatmapSetID:" +
-          "\n"
-          )
-    print("[Difficulty]" +
-          "\nHPDrainRate:5" +
-          "\nCircleSize:5" +
-          "\nOverallDifficulty:4" +
-          "\nApproachRate:5" +
-          "\nSliderMultiplier:1.4" +
-          "\nSliderTickRate:1" +
-          "\n"
-          )
-    print("[TimingPoints]\n" +
-          str(int(tja.offset * 1000)) + "," + str(tja.oneBeatTime * 1000) + "," + str(tja.measure) +
-          ",1,0,100,1,0\n"
-          )  # This one needs to be fixed with multiple timelines
+    result = ""
+    result += "osu file format v14" + "\n"
+    result += "[General]" + \
+              "\nAudioFilename: " + tja.wavfile + \
+              "\nAudioLeadIn: 0" + \
+              "\nPreviewTime: " + str(int(tja.demostart) * 1000) + \
+              "\nCountdown: 0" + \
+              "\nSampleSet: None" + \
+              "\nStackLeniency: 0.7" + \
+              "\nMode: 1" + \
+              "\nLetterboxInBreaks: 0" + \
+              "\nWidescreenStoryboard: 0" + \
+              "\n"
+    result += "[Editor]" + \
+              "\nDistanceSpacing: 0.8" + \
+              "\nBeatDivisor: 4" + \
+              "\nGridSize: 8" + \
+              "\nTimelineZoom: 2.2" + \
+              "\n"
+    result += "[Metadata]" + \
+              "\nTitle:" + tja.title + \
+              "\nArtist:" + \
+              "\nCreator:" + \
+              "\nVersion:Insane" + \
+              "\nSource:" + \
+              "\nTags:" + \
+              "\nBeatmapID:" + \
+              "\nBeatmapSetID:" + \
+              "\n"
+    result += "[Difficulty]" + \
+              "\nHPDrainRate:5" + \
+              "\nCircleSize:5" + \
+              "\nOverallDifficulty:4" + \
+              "\nApproachRate:5" + \
+              "\nSliderMultiplier:" + str(sliderMultiplier) + \
+              "\nSliderTickRate:1" + \
+              "\n"
 
-    print("[HitObjects]")
-    for item in tja.timeline:
+    print("[TimingPoints]")
+    for timestamp, bpm, measure in tja.timingPoints:
+        print(str(timestamp * 1000) + "," + str(60/bpm*1000) + "," + str(measure) + ",1,0,100,1,0")
+
+    print("\n[HitObjects]")
+    currBeatLen = tja.oneBeatTime
+    for idx, item in enumerate(tja.timeline):
         note, time = item[0], item[2]
-        print(str(X) + "," + str(Y) + "," + str(time * 1000) + ",", end="")
+        if note != "8":
+            print(str(X) + "," + str(Y) + "," + str(time * 1000) + ",", end="")
         if note == "1":  # Don
             print("5,0,0:0:0:0:")
         elif note == "2":  # Ka
             print("5,8,0:0:0:0:")
         elif note == "3":  # Don(L)
-            print("5,4,0:0:0:80:")
+            print("5,4,0:0:0:65:")
         elif note == "4":  # Ka(L)
-            print("5,12,0:0:0:80:")
-        elif note == "5":  # Slider
-            # TODO
-            print("5,12,0:0:0:0:")
-        elif note == "6":  # Large slider
-            # TODO
-            print("5,12,0:0:0:0:")
+            print("5,12,0:0:0:65:")
+        elif note == "5" or note == "6":  # Slider or Large Slider
+            endtime = tja.timeline[idx + 1][2]
+            lenPixel = (endtime - time) * 1000 / (currBeatLen * 1000) * (sliderMultiplier * 100)
+            print("2,0,L|" + str(X + lenPixel) + ":" + str(Y) + ",1," + str(lenPixel))
         elif note == "7":  # Fusen
-            # TODO
-            print("5,12,0:0:0:0:")
-        elif note == "8":  # End
-            # TODO
-            print("5,12,0:0:0:0:")
-    # get_all(filename)
-    # if not debug_mode:
-    #     write_TimingPoints()
-    #     write_HitObjects()
+            endtime = tja.timeline[idx + 1][2] * 1000
+            print("12,0," + str(endtime) + ",0:0:0:0:")
+
+    return result
 
 
 if __name__ == "__main__":

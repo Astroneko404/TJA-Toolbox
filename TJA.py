@@ -24,6 +24,7 @@ class TJA:
         self.difficulty = difficulty
         self.fumen = None
         self.timeline = []
+        self.timingPoints = []
 
     def calcTimeline(self):
         """
@@ -32,19 +33,38 @@ class TJA:
         :return: None
         """
         overallTime = 0.0
+        newTimingPts = False
+        idx = 0
+        self.timingPoints.append((self.offset, self.bpm, self.measure))
 
-        for idx, bar in enumerate(self.fumen):
+        while idx < len(self.fumen):
+            bar = self.fumen[idx]
+
             # Preprocess each line
-            if not bar or "#GOGOSTART" in bar or "#GOGOEND" in bar or\
-                    "#SCROLL" in bar or "#BARLINEON" in bar or "#BARLINEOFF" in bar:
-                continue
-            if "#MEASURE" in bar:
-                self.measure = int(re.search(r"#MEASURE ([0-9]+)\/[0-9]+", bar).group(1))
-                # print("Measure: " + str(self.measure))
-                continue
-            elif "#BPMCHANGE" in bar:
-                self.bpm = int(re.search(r"#BPMCHANGE ([0-9]+)", bar).group(1))
-                self.oneBeatTime = 60.0 / float(self.bpm)
+            while not bar or "#" in bar:
+                # print(bar)
+                if not bar or "#GOGOSTART" in bar or "#GOGOEND" in bar or\
+                        "#SCROLL" in bar or "#BARLINEON" in bar or "#BARLINEOFF" in bar:
+                    idx += 1
+                    bar = self.fumen[idx]
+                    continue
+                if "#MEASURE" in bar:
+                    self.measure = int(re.search(r"#MEASURE ([0-9]+)\/[0-9]+", bar).group(1))
+                    # print("Measure: " + str(self.measure))
+                    newTimingPts = True
+                    # continue
+                elif "#BPMCHANGE" in bar:
+                    self.bpm = int(re.search(r"#BPMCHANGE ([0-9]+)", bar).group(1))
+                    self.oneBeatTime = 60.0 / float(self.bpm)
+                    # continue
+                    newTimingPts = True
+                idx += 1
+                bar = self.fumen[idx]
+
+            if newTimingPts:
+                self.timingPoints.append((overallTime + self.offset, self.bpm, self.measure))
+                newTimingPts = False
+                # idx += 1
                 continue
 
             # Get bar length
@@ -69,29 +89,10 @@ class TJA:
                     if note != "0":
                         self.timeline.append((note, overallTime, overallTime + self.offset))
                         overallTime += keyDelay
-                    # if note == "1" or note == "3":  # Don
-                    #     self.timeline.append((note, overallTime, overallTime + self.offset))
-                    #     overallTime += keyDelay
-                    # elif note == "2" or note == "4":  # Ka
-                    #     self.timeline.append((note, overallTime, overallTime + self.offset))
-                    #     overallTime += keyDelay
-                    # elif note == "5":  # Start of yellow slider
-                    #     self.timeline.append((note, overallTime, overallTime + self.offset))
-                    #     overallTime += keyDelay
-                    # elif note == "6":  # Start of large yellow slider
-                    #     self.timeline.append((note, overallTime, overallTime + self.offset))
-                    #     overallTime += keyDelay
-                    # elif note == "7":  # Start of balloon
-                    #     self.timeline.append((note, overallTime, overallTime + self.offset))
-                    #     overallTime += keyDelay
-                    #     continue
-                    # elif note == "8":  # End of yellow slider/balloon
-                    #     # TODO
-                    #     overallTime += keyDelay
-                    #     continue
                     else:  # 0?
                         overallTime += keyDelay
                         continue
+            idx += 1
         return
 
     def exportTimeline(self, outPath):
