@@ -116,4 +116,7 @@ if __name__ == "__main__":
     rtassert(len(sys.argv) >= 2, "need a filename\n" + get_help_str())
     # global debug_mode
     # debug_mode = (len(sys.argv) >= 3 and ("debug" in sys.argv))
-    tja2osu(sys.argv[1])
+    if not sys.argv[1].lower().endswith(".tja"):
+        print("Please use a TJA file")
+        sys.exit()
+    res = tja2osu(sys.argv[1])
