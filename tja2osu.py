@@ -1,4 +1,4 @@
-import os
+from bisect import bisect
 import sys
 from six import string_types
 from TJA import TJA
@@ -37,7 +37,8 @@ def tja2osu(filename, difficulty):
     """
     Full explanation of osu file format:
     https://osu.ppy.sh/wiki/en/Client/File_formats/Osu_(file_format)
-    :param filename:
+    :param filename: tja file path
+    :param difficulty: string -> "Edit", "Oni", "Hard", "Normal", "Easy" or others
     :return:
     """
     assert isinstance(filename, string_types)
@@ -89,9 +90,11 @@ def tja2osu(filename, difficulty):
         result += str(timestamp * 1000) + "," + str(60/bpm*1000) + "," + str(measure) + ",1,0,100,1,0\n"
 
     result += "\n[HitObjects]\n"
-    currBeatLen = tja.oneBeatTime
+    timingPts = [x[0] for x in tja.timingPoints]  # In seconds
+
     for idx, item in enumerate(tja.timeline):
         note, time = item[0], item[2]
+        currBeatLen = 60.0 / tja.timingPoints[bisect(timingPts, time) - 1][1]
         if note != "8":
             result += str(X) + "," + str(Y) + "," + str(time * 1000) + ","
         if note == "1":  # Don
@@ -105,6 +108,7 @@ def tja2osu(filename, difficulty):
         elif note == "5" or note == "6":  # Slider or Large Slider
             endtime = tja.timeline[idx + 1][2]
             lenPixel = (endtime - time) * 1000 / (currBeatLen * 1000) * (sliderMultiplier * 100)
+            # print(endtime - time, currBeatLen, lenPixel)
             result += "2,0,L|" + str(X + lenPixel) + ":" + str(Y) + ",1," + str(lenPixel)
         elif note == "7":  # Fusen
             endtime = tja.timeline[idx + 1][2] * 1000
@@ -124,5 +128,5 @@ if __name__ == "__main__":
     dif = input("Please enter the difficulty:")
     res = tja2osu(sys.argv[1], dif)
 
-    outFile = open(sys.argv[1] + ".osu.txt", "w+")
+    outFile = open(sys.argv[1] + "." + dif.lower() + ".osu", "w+")
     outFile.write(res)

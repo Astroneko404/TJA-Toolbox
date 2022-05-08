@@ -28,14 +28,14 @@ class TJA:
 
     def calcTimeline(self):
         """
-        Read the Fumen and calculate time for each notes
+        Read the Fumen and calculate time for each note
         The data will be saved in self.timeline
         :return: None
         """
         overallTime = 0.0
         newTimingPts = False
         idx = 0
-        self.timingPoints.append((self.offset, self.bpm, self.measure))
+        self.timingPoints.append([self.offset, self.bpm, self.measure])
 
         while idx < len(self.fumen):
             bar = self.fumen[idx]
@@ -49,12 +49,12 @@ class TJA:
                     bar = self.fumen[idx]
                     continue
                 if "#MEASURE" in bar:
-                    self.measure = int(re.search(r"#MEASURE ([0-9]+)\/[0-9]+", bar).group(1))
+                    self.measure = int(re.search(r"#MEASURE (\d+)\/\d+", bar).group(1))
                     # print("Measure: " + str(self.measure))
                     newTimingPts = True
                     # continue
                 elif "#BPMCHANGE" in bar:
-                    self.bpm = int(re.search(r"#BPMCHANGE ([0-9]+)", bar).group(1))
+                    self.bpm = int(re.search(r"#BPMCHANGE (\d+)", bar).group(1))
                     self.oneBeatTime = 60.0 / float(self.bpm)
                     # continue
                     newTimingPts = True
@@ -70,7 +70,7 @@ class TJA:
             # Get bar length
             currBarLength = self.oneBeatTime * self.measure
             # print(currBarLength)
-            keys = re.sub(r"(\/\/[0-9]+)", "", bar.strip().replace(",", ""))
+            keys = re.sub(r"(\/\/\d+)", "", bar.strip().replace(",", ""))
             count = len(keys)
             keyDelay = currBarLength / count if count else currBarLength
             # print(keys, count)
@@ -173,7 +173,7 @@ class TJA:
                     self.title = line.split(":")[1].strip()
                 elif "SUBTITLE" in line:
                     self.subtitle = line.split(":")[1]
-                elif "BPM" in line:
+                elif "BPM" in line and "BPMCHANGE" not in line:
                     self.bpm = int(line.split(":")[1])
                     self.oneBeatTime = 60.0 / float(self.bpm)
                 elif "WAVE" in line:
@@ -185,7 +185,7 @@ class TJA:
 
             # Extract Fumen
             for splitResult in text.split("COURSE:"):
-                if self.difficulty == splitResult.split("\n")[0].strip():
+                if self.difficulty.lower() == splitResult.split("\n")[0].lower().strip():
                     self.fumen = re.search(r"#START\n([\S\s]+)\n#END", splitResult).group(1).split("\n")
 
         except OSError:
