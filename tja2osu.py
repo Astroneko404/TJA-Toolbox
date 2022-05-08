@@ -45,7 +45,9 @@ def tja2osu(filename, difficulty):
 
     tja = TJA(filename, difficulty)
     tja.readFumen()
+    # print(tja.fumen)
     tja.calcTimeline()
+    # print(tja.timeline)
 
     result = ""
     result += "osu file format v14" + "\n\n"
@@ -128,5 +130,6 @@ if __name__ == "__main__":
     dif = input("Please enter the difficulty:")
     res = tja2osu(sys.argv[1], dif)
 
-    outFile = open(sys.argv[1] + "." + dif.lower() + ".osu", "w+")
+    outFile = open(sys.argv[1] + "." + dif.lower() + ".osu", "w+", encoding="utf-8")
+    # outFile = open(sys.argv[1] + "." + ".osu", "w+")
     outFile.write(res)

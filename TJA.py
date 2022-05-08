@@ -39,23 +39,28 @@ class TJA:
 
         while idx < len(self.fumen):
             bar = self.fumen[idx]
+            # print(bar)
 
             # Preprocess each line
             while not bar or "#" in bar:
-                # print(bar)
                 if not bar or "#GOGOSTART" in bar or "#GOGOEND" in bar or\
                         "#SCROLL" in bar or "#BARLINEON" in bar or "#BARLINEOFF" in bar:
                     idx += 1
-                    bar = self.fumen[idx]
-                    continue
+                    # print(idx)
+                    if idx < len(self.fumen):
+                        bar = self.fumen[idx]
+                        continue
+                    else:
+                        return
                 if "#MEASURE" in bar:
                     self.measure = int(re.search(r"#MEASURE (\d+)\/\d+", bar).group(1))
                     # print("Measure: " + str(self.measure))
                     newTimingPts = True
                     # continue
                 elif "#BPMCHANGE" in bar:
-                    self.bpm = int(re.search(r"#BPMCHANGE (\d+)", bar).group(1))
-                    self.oneBeatTime = 60.0 / float(self.bpm)
+                    # self.bpm = int(re.search(r"#BPMCHANGE (\d+)", bar).group(1))
+                    self.bpm = float(bar.split()[1])
+                    self.oneBeatTime = 60.0 / self.bpm
                     # continue
                     newTimingPts = True
                 idx += 1
@@ -76,7 +81,8 @@ class TJA:
             # print(keys, count)
 
             # First note
-            if idx == 0:
+            # print(len(keys))
+            if idx == 0 and keys:
                 self.timeline.append((keys[0], overallTime, overallTime + self.offset))
                 overallTime += keyDelay
                 keys = keys[1:]
@@ -158,7 +164,7 @@ class TJA:
         :return: None
         """
         try:
-            TJAFile = open(self.filePath, "r")
+            TJAFile = open(self.filePath, "r", encoding="shiftjis")
             self.name = os.path.basename(self.filePath)
 
             # Read Meta
