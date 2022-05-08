@@ -10,3 +10,13 @@
 # EditPad Pro Project File #
 ###################
 *.epp
+
+# Pyinstall Folders #
+#####################
+build/
+dist/
+
+# IDE Folders #
+###############
+__pycache__/
+.idea/
